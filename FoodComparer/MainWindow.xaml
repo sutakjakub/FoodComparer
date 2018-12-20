@@ -4,9 +4,162 @@
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:local="clr-namespace:FoodComparer"
+        xmlns:Data="clr-namespace:FoodComparer.Data"
+        xmlns:ViewModels="clr-namespace:FoodComparer.ViewModels"
+        xmlns:dxmvvm="http://schemas.devexpress.com/winfx/2008/xaml/mvvm"
+        xmlns:sys="clr-namespace:System;assembly=mscorlib"
+        DataContext="{dxmvvm:ViewModelSource Type=ViewModels:MainWindowViewModel}"
         mc:Ignorable="d"
-        Title="MainWindow" Height="450" Width="800">
-    <Grid>
-        
+        WindowStyle="SingleBorderWindow"
+        ResizeMode="NoResize"
+        Title="MainWindow" Height="700" Width="800"
+        FontSize="15"
+        FontWeight="Light">
+    <Window.Resources>
+        <ObjectDataProvider MethodName="GetValues"
+                ObjectType="{x:Type sys:Enum}"
+                x:Key="enumProviders">
+            <ObjectDataProvider.MethodParameters>
+                <x:Type TypeName="Data:EnumProviders" />
+            </ObjectDataProvider.MethodParameters>
+        </ObjectDataProvider>
+        <local:EnumDescriptionConverter x:Key="EnumDescriptionConverter" />
+        <local:NullVisibilityConverter x:Key="NullVisibilityConverter" />
+        <Style TargetType="{x:Type local:SearchableTextControl}">
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="{x:Type local:SearchableTextControl}">
+                        <Border Background="{TemplateBinding Background}"
+                            BorderBrush="{TemplateBinding BorderBrush}"
+                            BorderThickness="{TemplateBinding BorderThickness}">
+                            <TextBlock TextWrapping="Wrap" x:Name="PART_TEXT"/>
+                        </Border>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+    </Window.Resources>
+    <Grid Margin="20" x:Name="LayoutRoot">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="Auto"/>
+        </Grid.RowDefinitions>
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition />
+            <ColumnDefinition />
+        </Grid.ColumnDefinitions>
+
+        <TextBlock Text="Food alert!" FontSize="45" HorizontalAlignment="Center" Margin="0 10 0 20" Grid.ColumnSpan="2"/>
+
+        <StackPanel Grid.Row="1" Margin="0 0 0 0">
+            <TextBlock Text="Kritéria" FontWeight="SemiBold" FontSize="20" />
+            <StackPanel Orientation="Horizontal" Margin="0 10 0 2">
+                <TextBlock Text="Datum:" FontWeight="SemiBold" Margin="0 0 74 0"/>
+                <DatePicker Text="{Binding Date, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" FontSize="15" HorizontalAlignment="Right" Width="252" />
+            </StackPanel>
+            <Grid Margin="0 0 0 2">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="Auto"/>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="Auto"/>
+                </Grid.ColumnDefinitions>
+                <TextBlock Text="Zadat nové jídlo:" FontWeight="SemiBold" Margin="0 0 10 0"/>
+                <TextBox Grid.Column="1" x:Name="textForAdding" Text="{Binding SearchString, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" FontSize="15" Margin="0 0 2 0"/>
+                <Button Grid.Column="2" Content="Přidat" >
+                    <dxmvvm:Interaction.Behaviors>
+                        <dxmvvm:EventToCommand EventName="Click" Command="{Binding AddCommand}" />
+                    </dxmvvm:Interaction.Behaviors>
+                </Button>
+            </Grid>
+            <ListBox x:Name="listBox" MaxHeight="180" ItemsSource="{Binding SearchStrings, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" Grid.IsSharedSizeScope="True" ScrollViewer.VerticalScrollBarVisibility="Visible">
+                <ListBox.ItemTemplate>
+                    <DataTemplate>
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="290"/>
+                                <ColumnDefinition Width="Auto"/>
+                            </Grid.ColumnDefinitions>
+                            <TextBlock Grid.Column="0" Text="{Binding}" FontSize="15"/>
+                            <Button Grid.Column="1" Content="Smazat" Width="50" Command="{Binding ElementName=listBox, Path=DataContext.RemoveCommand}" CommandParameter="{Binding}" />
+                        </Grid>
+                    </DataTemplate>
+                </ListBox.ItemTemplate>
+            </ListBox>
+        </StackPanel>
+
+        <StackPanel Grid.Column="1" Grid.Row="1" Margin="0 0 0 0" HorizontalAlignment="Right" VerticalAlignment="Top">
+            <TextBlock Text="Restaurace" FontWeight="SemiBold" FontSize="20"/>
+            <ListBox Margin="0" ItemsSource="{Binding Providers}" BorderThickness="0">
+                <ListBox.ItemTemplate>
+                    <DataTemplate>
+                        <Grid Width="300">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="Auto"/>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="Auto"/>
+                            </Grid.ColumnDefinitions>
+                            <TextBlock Grid.Column="0" Text="{Binding State}" Foreground="{Binding StateForeground}" FontWeight="SemiBold" Margin="0 0 50 0" ToolTip="{Binding ExceptionMessage}"/>
+                            <TextBlock Grid.Column="1" Text="{Binding ProviderType, Converter={StaticResource EnumDescriptionConverter}}" />
+                            <Button Grid.Column="2" Content="URL" ToolTip="{Binding Url}">
+                                <dxmvvm:Interaction.Behaviors>
+                                    <dxmvvm:EventToCommand EventName="Click" Command="{Binding ShowHttpPageCommand}" />
+                                </dxmvvm:Interaction.Behaviors>
+                            </Button>
+                        </Grid>
+                    </DataTemplate>
+                </ListBox.ItemTemplate>
+            </ListBox>
+        </StackPanel>
+
+        <Button Grid.ColumnSpan="2" Grid.Row="3" Content="Vyhledat" Padding="20" Width="150" HorizontalAlignment="Right" Command="{Binding SearchCommand}"/>
+        <DataGrid Grid.ColumnSpan="2" Grid.Row="4" 
+                  ItemsSource="{Binding Foods}" 
+                  Visibility="{Binding Foods, Converter={StaticResource NullVisibilityConverter}}" 
+                  Margin="0 10 0 20" 
+                  AutoGenerateColumns="False"
+                  ScrollViewer.VerticalScrollBarVisibility="Auto"
+                  GridLinesVisibility="None"
+                  SelectionMode="Extended">
+            <DataGrid.ColumnHeaderStyle>
+                <Style TargetType="{x:Type DataGridColumnHeader}">
+                    <Setter Property="FontWeight" Value="SemiBold" />
+                </Style>
+            </DataGrid.ColumnHeaderStyle>
+            <DataGrid.Columns>
+                <DataGridTemplateColumn Header="Název jídla" Width="SizeToCells" IsReadOnly="True">
+                    <DataGridTemplateColumn.CellTemplate>
+                        <DataTemplate>
+                            <local:SearchableTextControl Text="{Binding Name}" IsHighlight="True" SearchTextList="{Binding DataContext.SearchStrings, ElementName=LayoutRoot}"
+                                 HighlightBackground="LightGray" HighlightForeground="Black" />
+                            <!--<TextBlock Text="{Binding Name}" FontSize="15" />-->
+                        </DataTemplate>
+                    </DataGridTemplateColumn.CellTemplate>
+                </DataGridTemplateColumn>
+                <DataGridTemplateColumn Header="Cena" Width="SizeToHeader" IsReadOnly="True" >
+                    <DataGridTemplateColumn.CellTemplate>
+                        <DataTemplate>
+                            <TextBlock Text="{Binding Price, StringFormat={}{0:# Kč}}" FontSize="15" />
+                        </DataTemplate>
+                    </DataGridTemplateColumn.CellTemplate>
+                </DataGridTemplateColumn>
+                <DataGridTemplateColumn Header="Restaurace" Width="SizeToCells" IsReadOnly="True">
+                    <DataGridTemplateColumn.CellTemplate>
+                        <DataTemplate>
+                            <TextBlock Text="{Binding ProviderType, Converter={StaticResource EnumDescriptionConverter}}" FontSize="15" />
+                        </DataTemplate>
+                    </DataGridTemplateColumn.CellTemplate>
+                </DataGridTemplateColumn>
+            </DataGrid.Columns>
+        </DataGrid>
+
+        <StatusBar Grid.ColumnSpan="2" Grid.Row="5" VerticalAlignment="Bottom">
+            <StatusBarItem>
+                <TextBlock Text="{Binding Status}" FontSize="15" FontWeight="SemiBold"/>
+            </StatusBarItem>
+        </StatusBar>
     </Grid>
 </Window>
